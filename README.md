@@ -263,4 +263,24 @@ radius against the isolation you gain.
   request.
 - On Windows, run the `docker` backend via Docker Desktop; the temp-dir bind
   mount requires the drive to be shared with Docker Desktop.
-```
+
+## Usage & third-party terms
+
+This tool drives the **Claude Code**, **agy**, and **OpenAI Codex** CLIs using
+**your own local login** for each. You are responsible for complying with each
+CLI's Terms of Service and Usage Policy — in particular, **do not use it to
+resell or proxy access to those services for third parties**. Use your own
+account, for your own use.
+
+Publishing or forking this code is fine; how you *operate* it is on you. Check
+the authoritative sources yourself:
+
+- **Anthropic** (Claude Code) — Usage Policy, Consumer Terms, and Commercial
+  Terms (search "Anthropic usage policy" / "Anthropic commercial terms").
+- **OpenAI** (Codex) — Usage Policies and the applicable API/ChatGPT terms for
+  the login you use (search "OpenAI usage policies" / "OpenAI terms of use").
+- **agy** — its own vendor terms.
+
+This project is not affiliated with, endorsed by, or sponsored by Anthropic,
+OpenAI, or the agy vendor. Product names are used only to identify the tools
+this gateway integrates with.
