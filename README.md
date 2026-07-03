@@ -234,6 +234,25 @@ or register the built `ai-gateway-api.exe` as a service with a tool like
 [NSSM](https://nssm.cc/) / Task Scheduler so it survives logout. The service
 account must have Docker Desktop running and the generation CLI logged in.
 
+**Windows auto-start at logon** — the `scripts/` folder registers a per-user
+scheduled task (no admin needed) that starts the gateway every time you log in
+and restarts it if it crashes. It runs as your user, so your generation-CLI
+login and Docker Desktop are available.
+
+```powershell
+# Install (once). Create a .env first — GATEWAY_API_KEYS especially.
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
+
+Start-ScheduledTask -TaskName AITerminalGateway   # start now, without logging out
+Stop-ScheduledTask  -TaskName AITerminalGateway   # stop it
+powershell -File scripts\uninstall-autostart.ps1  # remove auto-start
+```
+
+The task runs `scripts\gateway-autostart.ps1`, which loads `.env`, builds
+`ai-gateway-api.exe` if missing, and launches it. **Set `GATEWAY_API_KEYS` in
+`.env` before enabling auto-start** — otherwise the gateway comes up
+unauthenticated on port 8081.
+
 ### 4. Put it behind TLS + a reverse proxy
 
 The gateway serves plain HTTP and does no rate limiting. In production, front it
