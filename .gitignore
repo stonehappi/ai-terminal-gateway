@@ -1,3 +1,6 @@
 /ai-gateway-api
 /ai-gateway-api.exe
 .env
+
+# Installer build output
+/installer/Output/

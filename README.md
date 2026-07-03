@@ -24,7 +24,33 @@ POST /v1/run                      generation CLI           Docker sandbox
                                             {lang,script}       mem/cpu/pid caps)        stderr, exit_code }
 ```
 
-## Requirements
+## Install on Windows (no coding required)
+
+Non-technical users don't need Go, a terminal, or `.env` editing — use the
+installer:
+
+1. Download **`ai-terminal-gateway-setup.exe`** from the
+   [Releases](https://github.com/stone-siit/ai-terminal-gateway/releases) page
+   and double-click it.
+2. In the wizard, pick your AI provider (**Codex**, **Claude**, or **agy**), and
+   optionally tick "log in now" and "start now".
+3. Click **Install**. The wizard then:
+   - generates a secure API key and a `.env` for you,
+   - auto-detects Docker (uses the isolated sandbox if present, otherwise a
+     local no-isolation mode),
+   - registers the gateway to **start automatically every time you log in**.
+
+When it finishes it shows your local URL (`http://localhost:8081`) and your API
+key. You still need an account for the chosen AI CLI — the wizard can open its
+login page for you. To remove it, uninstall from *Add or remove programs*.
+
+> **Building the installer (maintainers):** requires Go and
+> [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+> (`winget install JRSoftware.InnoSetup`). Run
+> `powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1`; the
+> `Setup.exe` lands in `installer\Output\`.
+
+## Requirements (build from source)
 
 - Go 1.23+
 - One generation CLI installed and logged in, matching `LLM_PROVIDER`:
