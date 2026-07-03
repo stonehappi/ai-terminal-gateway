@@ -2,7 +2,7 @@
 // CLI in headless print mode. The CLI decides whether to answer directly
 // (assistant mode) or to produce a script that the gateway runs in a sandbox.
 //
-// Two CLI providers are supported, selected at construction time:
+// Three CLI providers are supported, selected at construction time:
 //
 //   - "claude" — the Claude Code CLI. Reads the prompt from stdin, is invoked
 //     with `--output-format json`, and wraps the model's final text in a JSON
@@ -11,9 +11,14 @@
 //   - "agy" — the agy CLI. Takes the prompt as a `--print` argument and emits
 //     the model's raw text directly (no JSON envelope). Auth comes from your
 //     local agy login.
+//   - "codex" — the OpenAI Codex CLI. Runs `codex exec <prompt>` headlessly and
+//     prints the model's final message as raw text (no JSON envelope). Auth
+//     comes from your local codex login.
 //
-// Either way the model is instructed to return a single JSON decision object,
-// which this package extracts and normalizes.
+// The request is not limited to code: the model may reply in "answer" mode
+// (a plain-text business-assistant response) or "script" mode (code the gateway
+// runs in a sandbox). Either way the model returns a single JSON decision
+// object, which this package extracts and normalizes.
 package llm
 
 import (
@@ -30,6 +35,7 @@ import (
 const (
 	ProviderClaude = "claude"
 	ProviderAgy    = "agy"
+	ProviderCodex  = "codex"
 )
 
 // Mode is how the gateway should handle a request.
@@ -47,9 +53,10 @@ type Generation struct {
 	Explanation string `json:"explanation"` // used when Mode == ModeScript
 }
 
-// Client drives an agentic coding CLI (Claude Code or agy) in print mode.
+// Client drives an agentic coding CLI (Claude Code, agy, or Codex) in headless
+// print mode.
 type Client struct {
-	provider string // ProviderClaude or ProviderAgy
+	provider string // ProviderClaude, ProviderAgy, or ProviderCodex
 	bin      string // path/name of the CLI binary
 	model    string // optional --model override; empty = CLI default
 }
@@ -122,6 +129,8 @@ func (c *Client) run(ctx context.Context, prompt string) (string, error) {
 	switch c.provider {
 	case ProviderAgy:
 		return c.runAgy(ctx, prompt)
+	case ProviderCodex:
+		return c.runCodex(ctx, prompt)
 	default:
 		return c.runClaude(ctx, prompt)
 	}
@@ -173,6 +182,28 @@ func (c *Client) runAgy(ctx context.Context, prompt string) (string, error) {
 
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("agy cli failed: %w: %s", err, strings.TrimSpace(stderr.String()))
+	}
+	return stdout.String(), nil
+}
+
+// runCodex drives the OpenAI Codex CLI in headless "exec" mode, which takes the
+// prompt as an argument and prints the model's final message as raw text (no
+// JSON envelope) to stdout. --skip-git-repo-check lets it run outside a git
+// repo (the gateway's working directory is arbitrary).
+func (c *Client) runCodex(ctx context.Context, prompt string) (string, error) {
+	args := []string{"exec", "--skip-git-repo-check"}
+	if c.model != "" {
+		args = append(args, "--model", c.model)
+	}
+	args = append(args, prompt)
+
+	cmd := exec.CommandContext(ctx, c.bin, args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("codex cli failed: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return stdout.String(), nil
 }

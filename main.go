@@ -48,8 +48,11 @@ func main() {
 
 	// Select the generation CLI backend.
 	genBin, genModel := cfg.ClaudeBin, cfg.ClaudeModel
-	if cfg.Provider == llm.ProviderAgy {
+	switch cfg.Provider {
+	case llm.ProviderAgy:
 		genBin, genModel = cfg.AgyBin, cfg.AgyModel
+	case llm.ProviderCodex:
+		genBin, genModel = cfg.CodexBin, cfg.CodexModel
 	}
 	srv := api.NewServer(cfg, llm.New(cfg.Provider, genBin, genModel), executor, log)
 

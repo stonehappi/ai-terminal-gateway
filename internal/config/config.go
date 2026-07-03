@@ -19,12 +19,14 @@ type Config struct {
 	GatewayAPIKeys map[string]struct{}
 
 	// Generation CLI (drives an agentic coding CLI instead of the API).
-	// Provider selects the backend: "claude" (default) or "agy".
+	// Provider selects the backend: "claude" (default), "agy", or "codex".
 	Provider    string
 	ClaudeBin   string // binary name/path, default "claude"
 	ClaudeModel string // optional --model override; empty = CLI default
 	AgyBin      string // binary name/path, default "agy"
 	AgyModel    string // optional --model override; empty = CLI default
+	CodexBin    string // binary name/path, default "codex"
+	CodexModel  string // optional --model override; empty = CLI default
 
 	// Sandbox
 	SandboxBackend string        // "docker" (default) or "local"
@@ -44,6 +46,8 @@ func Load() (*Config, error) {
 		ClaudeModel:    os.Getenv("CLAUDE_MODEL"),
 		AgyBin:         getenv("AGY_BIN", "agy"),
 		AgyModel:       os.Getenv("AGY_MODEL"),
+		CodexBin:       getenv("CODEX_BIN", "codex"),
+		CodexModel:     os.Getenv("CODEX_MODEL"),
 		SandboxBackend: getenv("SANDBOX_BACKEND", "docker"),
 		PythonImage:    getenv("SANDBOX_PYTHON_IMAGE", "python:3.12-slim"),
 		BashImage:      getenv("SANDBOX_BASH_IMAGE", "bash:5"),
@@ -71,9 +75,9 @@ func Load() (*Config, error) {
 	}
 
 	switch cfg.Provider {
-	case "claude", "agy":
+	case "claude", "agy", "codex":
 	default:
-		return nil, fmt.Errorf("invalid LLM_PROVIDER %q (want claude|agy)", cfg.Provider)
+		return nil, fmt.Errorf("invalid LLM_PROVIDER %q (want claude|agy|codex)", cfg.Provider)
 	}
 
 	return cfg, nil

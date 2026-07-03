@@ -1,19 +1,25 @@
 # AI Gateway API
 
-An HTTP API gateway that runs AI-generated code in a cloud terminal sandbox.
+An HTTP API gateway that answers natural-language requests — either as a
+**business assistant** (plain-text reply) or by running **AI-generated code** in
+a cloud terminal sandbox.
 
 **Flow:** a caller sends a natural-language prompt → the gateway drives an
-**agentic coding CLI** (the **Claude Code CLI**, `claude -p`, or **agy**,
-`agy --print`) to write a self-contained script → the script runs in an isolated
-**sandbox terminal** (a network-less Docker container) → the gateway returns the
-script, its explanation, and the captured output.
+**agentic coding CLI** (**Claude Code**, `claude -p`; **agy**, `agy --print`; or
+**OpenAI Codex**, `codex exec`) → the CLI decides how to respond:
 
-The generation backend is selectable via `LLM_PROVIDER` (`claude` by default, or
-`agy`). Auth for generation comes from that CLI's own local login — **no
-`ANTHROPIC_API_KEY` is used**.
+- **answer mode** — a direct plain-text reply for questions, explanations, or
+  advice (the "business assistant" path); returned as-is, nothing is executed.
+- **script mode** — a self-contained script that runs in an isolated **sandbox
+  terminal** (a network-less Docker container); the gateway returns the script,
+  its explanation, and the captured output.
+
+The generation backend is selectable via `LLM_PROVIDER` (`claude` by default,
+`agy`, or `codex`). Auth for generation comes from that CLI's own local login —
+**no `ANTHROPIC_API_KEY` is used**.
 
 ```
-POST /v1/run                       claude -p CLI            Docker sandbox
+POST /v1/run                      generation CLI           Docker sandbox
   { "prompt": "..." }   ──▶  gateway ─────▶ generate JSON ──▶  run (no network,   ──▶  { script, stdout,
                                             {lang,script}       mem/cpu/pid caps)        stderr, exit_code }
 ```
@@ -25,6 +31,8 @@ POST /v1/run                       claude -p CLI            Docker sandbox
   - `claude` (default) — the **Claude Code CLI** on your PATH; verify with
     `claude -p "hi"`
   - `agy` — the **agy CLI** on your PATH; verify with `agy models`
+  - `codex` — the **OpenAI Codex CLI** on your PATH, logged in via `codex login`;
+    verify with `codex exec "hi"`
 - Docker (for the `docker` sandbox backend — the default and recommended mode)
 
 ## Setup
@@ -65,10 +73,28 @@ Request body:
 
 | Field      | Type   | Required | Description                                  |
 | ---------- | ------ | -------- | -------------------------------------------- |
-| `prompt`   | string | yes      | The task to perform.                         |
-| `language` | string | no       | Force `"python"` or `"bash"`. Otherwise Claude picks. |
+| `prompt`   | string | yes      | The request — a question to answer or a task to perform. |
+| `language` | string | no       | Force `"python"` or `"bash"`. Otherwise the model picks (and may choose to answer without code). |
 
-Example:
+The model chooses the response `mode`. The gateway returns one of two shapes.
+
+**Answer mode** (business-assistant reply — no code is run):
+
+```sh
+curl -s http://localhost:8081/v1/run \
+  -H "Authorization: Bearer dev-key-123" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Draft a polite reminder email for an overdue invoice"}' | jq
+```
+
+```json
+{
+  "mode": "answer",
+  "answer": "Subject: Friendly reminder — invoice #1234\n\nHi ..."
+}
+```
+
+**Script mode** (code generated and executed in the sandbox):
 
 ```sh
 curl -s http://localhost:8081/v1/run \
@@ -77,10 +103,9 @@ curl -s http://localhost:8081/v1/run \
   -d '{"prompt":"list the first 10 prime numbers"}' | jq
 ```
 
-Response:
-
 ```json
 {
+  "mode": "script",
   "language": "python",
   "script": "def is_prime(n): ...",
   "explanation": "Computes and prints the first 10 primes.",
@@ -103,9 +128,13 @@ Set `LLM_PROVIDER` to choose which CLI generates the script/answer:
   `CLAUDE_BIN` and `CLAUDE_MODEL`.
 - **`agy`**: drives `agy --print "<prompt>"`, which prints the model's raw text.
   Tune with `AGY_BIN` and `AGY_MODEL` (see `agy models` for available models).
+- **`codex`**: drives `codex exec --skip-git-repo-check "<prompt>"`, which prints
+  the model's final message as raw text. Tune with `CODEX_BIN` and `CODEX_MODEL`.
+  Log in first with `codex login`.
 
-Both use the CLI's own local login for auth. Only the generation step differs —
-sandbox execution of the resulting script is identical for either provider.
+All three use the CLI's own local login for auth. Only the generation step
+differs — the answer/script decision and sandbox execution are identical across
+providers.
 
 ## Sandbox backends
 
