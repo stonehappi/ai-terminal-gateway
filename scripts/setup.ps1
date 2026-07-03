@@ -74,7 +74,11 @@ if ($LoginNow) {
 # --- Register the auto-start task ---
 & (Join-Path $PSScriptRoot 'install-autostart.ps1')
 
-if ($StartNow) { Start-ScheduledTask -TaskName 'AITerminalGateway' }
+if ($StartNow) {
+    Start-ScheduledTask -TaskName 'AITerminalGateway'
+    Start-Sleep -Seconds 3
+    try { Start-Process "http://localhost:$Port" } catch { }   # open the web console
+}
 
 # --- Write the key to a readable file and open it so the user can copy it ---
 $keyFile = Join-Path $appRoot 'YOUR-API-KEY.txt'
@@ -87,7 +91,10 @@ $keyFile = Join-Path $appRoot 'YOUR-API-KEY.txt'
     "  Provider: $Provider",
     "  Sandbox:  $backendResolved",
     '',
-    "Send this header on every request to http://localhost:$Port/v1/run :",
+    "EASIEST WAY TO TRY IT: open http://localhost:$Port in your web browser,",
+    'paste the API key above once, type a request, and click Run.',
+    '',
+    "For API calls, send this header to http://localhost:$Port/v1/run :",
     '',
     "  Authorization: Bearer $key",
     '',

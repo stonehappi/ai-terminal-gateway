@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Terminal Gateway — console</title>
+<style>
+  :root{
+    --bg:#100b06; --panel:#181009; --raise:#1f150b; --text:#f3e7d3; --muted:#a6927a;
+    --faint:#6f5f4b; --border:#2b2013; --accent:#ffb02e; --accent-soft:#3a2a12;
+    --term:#0c0805; --ok:#8fd694; --err:#ff7a6b;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f5eee0; --panel:#fffdf8; --raise:#fbf4e6; --text:#211a10; --muted:#6d5d45;
+      --faint:#9c8a6e; --border:#e6dac2; --accent:#b06d10; --accent-soft:#f2e4c8;
+      --term:#1a130a; --ok:#3f8f52; --err:#c0392b; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--text); font:15px/1.6 var(--sans);
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px; margin:0 auto; padding:26px 20px 60px}
+  header{display:flex; align-items:center; gap:11px; margin-bottom:6px}
+  .sq{width:30px;height:30px;border:1px solid var(--accent); border-radius:7px; color:var(--accent);
+    display:grid; place-items:center; font-size:16px; background:var(--accent-soft)}
+  h1{font-family:var(--mono); font-size:18px; margin:0; letter-spacing:.02em}
+  .tag{color:var(--faint); font-family:var(--mono); font-size:12.5px; margin:2px 0 22px}
+  label{display:block; font-family:var(--mono); font-size:12px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--faint); margin:0 0 6px}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:16px}
+  textarea, input, select{width:100%; background:var(--term); color:var(--text); border:1px solid var(--border);
+    border-radius:9px; padding:11px 12px; font-family:var(--mono); font-size:14px; resize:vertical}
+  textarea{min-height:82px}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin-top:12px}
+  .row > div{flex:1; min-width:150px}
+  button{background:var(--accent); color:#1a1206; border:0; border-radius:9px; padding:12px 22px;
+    font-family:var(--mono); font-weight:700; font-size:14px; cursor:pointer; white-space:nowrap}
+  button:hover{filter:brightness(1.07)} button:disabled{opacity:.55; cursor:default}
+  details{margin-top:12px} summary{cursor:pointer; color:var(--muted); font-family:var(--mono); font-size:13px}
+  .keyrow{display:flex; gap:10px; margin-top:10px}
+  .keyrow input{flex:1}
+  .out{background:var(--term); border:1px solid var(--border); border-radius:12px; padding:0; overflow:hidden; display:none}
+  .out .bar{display:flex; gap:8px; align-items:center; padding:10px 13px; border-bottom:1px solid rgba(255,255,255,.06)}
+  .out .bar i{width:11px;height:11px;border-radius:50%}
+  .out .bar .r{background:#ff5f56}.out .bar .y{background:#ffbd2e}.out .bar .g{background:#27c93f}
+  .out .bar .t{margin-left:6px; font-family:var(--mono); font-size:12px; color:var(--faint)}
+  .out .body{padding:16px 18px; font-family:var(--mono); font-size:13.5px; white-space:pre-wrap; word-break:break-word; line-height:1.65}
+  .meta{font-family:var(--mono); font-size:12px; color:var(--faint); margin-bottom:10px}
+  .badge{display:inline-block; border:1px solid var(--border); border-radius:20px; padding:2px 10px; margin-right:6px; color:var(--muted)}
+  .stdout{color:var(--ok)} .stderr{color:var(--err)} .err{color:var(--err)}
+  .script{background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:8px; padding:12px; margin:8px 0; overflow-x:auto}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><span class="sq">▸</span><h1>AI Terminal Gateway</h1></header>
+  <p class="tag">local console · type a request, get an answer or run code</p>
+
+  <div class="card">
+    <label for="prompt">Your request</label>
+    <textarea id="prompt" placeholder="e.g. list the first 10 prime numbers &#10;or: draft a polite reminder email for an overdue invoice"></textarea>
+    <div class="row">
+      <div>
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="">Default (server setting)</option>
+          <option value="codex">codex</option>
+          <option value="claude">claude</option>
+          <option value="agy">agy</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto">
+        <button id="run">Run &nbsp;▸</button>
+      </div>
+    </div>
+    <details id="keybox">
+      <summary>API key</summary>
+      <div class="keyrow">
+        <input id="key" type="password" placeholder="paste your key from YOUR-API-KEY.txt (gw_...)" autocomplete="off">
+        <button id="savekey" style="background:var(--panel);color:var(--text);border:1px solid var(--border)">Save</button>
+      </div>
+      <p class="tag" style="margin:8px 0 0">Stored only in this browser. Needed if the gateway has auth enabled.</p>
+    </details>
+  </div>
+
+  <div class="out" id="out">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="t" id="outtitle">result</span></div>
+    <div class="body" id="outbody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var keyInput = $('key'), out = $('out'), outBody = $('outbody'), outTitle = $('outtitle'), runBtn = $('run');
+
+  // Restore saved key.
+  try { keyInput.value = localStorage.getItem('agw_key') || ''; } catch(e){}
+  if (!keyInput.value) { $('keybox').open = true; }
+
+  $('savekey').addEventListener('click', function(){
+    try { localStorage.setItem('agw_key', keyInput.value.trim()); } catch(e){}
+    $('keybox').open = false;
+  });
+
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+
+  function show(html){ out.style.display = 'block'; outBody.innerHTML = html; out.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+
+  function render(data){
+    var head = '<div class="meta"><span class="badge">provider: ' + esc(data.provider||'?') + '</span>'
+             + '<span class="badge">mode: ' + esc(data.mode||'?') + '</span></div>';
+    if (data.mode === 'answer') {
+      show(head + esc(data.answer || '(empty answer)'));
+      return;
+    }
+    var h = head;
+    if (data.explanation) h += esc(data.explanation) + '\n';
+    if (data.script) h += '<div class="script">' + esc(data.script) + '</div>';
+    var ex = data.execution || {};
+    if (ex.stdout) h += '<div class="stdout">' + esc(ex.stdout) + '</div>';
+    if (ex.stderr) h += '<div class="stderr">' + esc(ex.stderr) + '</div>';
+    h += '<div class="meta" style="margin-top:8px">exit code: ' + (ex.exit_code === undefined ? '?' : ex.exit_code)
+       + (ex.duration_ms !== undefined ? '  ·  ' + ex.duration_ms + ' ms' : '')
+       + (ex.timed_out ? '  ·  TIMED OUT' : '') + '</div>';
+    show(h);
+  }
+
+  function run(){
+    var prompt = $('prompt').value.trim();
+    if (!prompt) { $('prompt').focus(); return; }
+    var body = { prompt: prompt };
+    var prov = $('provider').value;
+    if (prov) body.provider = prov;
+
+    var headers = { 'Content-Type': 'application/json' };
+    var key = keyInput.value.trim();
+    if (key) headers['Authorization'] = 'Bearer ' + key;
+
+    runBtn.disabled = true;
+    outTitle.textContent = 'running…';
+    show('<span class="meta">Sending your request…</span>');
+
+    fetch('/v1/run', { method:'POST', headers: headers, body: JSON.stringify(body) })
+      .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, status: r.status, j: j }; }); })
+      .then(function(res){
+        outTitle.textContent = 'result';
+        if (!res.ok) {
+          var msg = (res.j && res.j.error) ? res.j.error : ('HTTP ' + res.status);
+          if (res.status === 401) msg = 'Unauthorized — open “API key” above and paste your key (from YOUR-API-KEY.txt).';
+          show('<span class="err">' + esc(msg) + '</span>');
+          return;
+        }
+        render(res.j);
+      })
+      .catch(function(e){
+        outTitle.textContent = 'result';
+        show('<span class="err">Could not reach the gateway. Is it running? ' + esc(e.message) + '</span>');
+      })
+      .then(function(){ runBtn.disabled = false; });
+  }
+
+  runBtn.addEventListener('click', run);
+  $('prompt').addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+  });
+})();
+</script>
+</body>
+</html>

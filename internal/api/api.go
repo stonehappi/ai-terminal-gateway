@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -13,6 +14,12 @@ import (
 	"github.com/stonehappi/ai-terminal-gateway/internal/llm"
 	"github.com/stonehappi/ai-terminal-gateway/internal/sandbox"
 )
+
+// consoleHTML is the local web console served at GET /. It is static HTML/JS;
+// requests it makes to /v1/run still require the gateway API key.
+//
+//go:embed console.html
+var consoleHTML []byte
 
 // Server ties together the LLM clients and sandbox executor behind HTTP
 // handlers. One client is registered per provider; requests may select one.
@@ -33,6 +40,7 @@ func NewServer(cfg *config.Config, llms map[string]*llm.Client, defaultProvider 
 // Handler returns the root HTTP handler with all routes wired up.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", s.handleConsole)
 	mux.HandleFunc("GET /healthz", s.handleHealth)
 	mux.Handle("POST /v1/run", s.authMiddleware(http.HandlerFunc(s.handleRun)))
 	return logMiddleware(s.log, mux)
@@ -56,6 +64,12 @@ type runResponse struct {
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// handleConsole serves the local web console (a simple test UI).
+func (s *Server) handleConsole(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(consoleHTML)
 }
 
 func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {

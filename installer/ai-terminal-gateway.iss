@@ -5,7 +5,7 @@
 ; logon auto-start task). Build with: scripts\build-installer.ps1
 
 #define MyAppName "AI Terminal Gateway"
-#define MyAppVersion "0.1.1"
+#define MyAppVersion "0.1.3"
 #define MyAppPublisher "stonehappi"
 #define MyAppURL "https://github.com/stonehappi/ai-terminal-gateway"
 

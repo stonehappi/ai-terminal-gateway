@@ -49,6 +49,10 @@ showing your local URL (`http://localhost:8081`) and API key, with a ready-to-us
 `curl` example. You still need an account for the chosen AI CLI — the wizard can
 open its login page for you. To remove it, uninstall from *Add or remove programs*.
 
+**Easiest way to try it:** open **`http://localhost:8081`** in your browser. The
+gateway serves a small **web console** — paste your API key once, type a request,
+pick a provider, and click Run. No terminal or `curl` needed.
+
 > **Building the installer (maintainers):** requires Go and
 > [Inno Setup 6](https://jrsoftware.org/isinfo.php)
 > (`winget install JRSoftware.InnoSetup`). Run
@@ -91,6 +95,12 @@ go run .
 ```
 
 ## API
+
+### `GET /`
+
+A minimal web console for testing — a prompt box, provider dropdown, and a field
+to paste your API key (saved in the browser). Open `http://localhost:8081` in a
+browser. It's static HTML; the requests it makes to `/v1/run` still need the key.
 
 ### `GET /healthz`
 
