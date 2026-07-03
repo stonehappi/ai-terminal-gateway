@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stone-siit/ai-terminal-gateway/internal/config"
-	"github.com/stone-siit/ai-terminal-gateway/internal/llm"
-	"github.com/stone-siit/ai-terminal-gateway/internal/sandbox"
+	"github.com/stonehappi/ai-terminal-gateway/internal/config"
+	"github.com/stonehappi/ai-terminal-gateway/internal/llm"
+	"github.com/stonehappi/ai-terminal-gateway/internal/sandbox"
 )
 
 // Server ties together the LLM clients and sandbox executor behind HTTP

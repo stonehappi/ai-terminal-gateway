@@ -6,8 +6,8 @@
 
 #define MyAppName "AI Terminal Gateway"
 #define MyAppVersion "0.1.0"
-#define MyAppPublisher "stone-siit"
-#define MyAppURL "https://github.com/stone-siit/ai-terminal-gateway"
+#define MyAppPublisher "stonehappi"
+#define MyAppURL "https://github.com/stonehappi/ai-terminal-gateway"
 
 [Setup]
 AppId={{7E2C1F9A-3B4D-4E6A-9C1B-AITERMGATEWAY01}

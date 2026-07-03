@@ -30,7 +30,7 @@ Non-technical users don't need Go, a terminal, or `.env` editing — use the
 installer:
 
 1. Download **`ai-terminal-gateway-setup.exe`** from the
-   [Releases](https://github.com/stone-siit/ai-terminal-gateway/releases) page
+   [Releases](https://github.com/stonehappi/ai-terminal-gateway/releases) page
    and double-click it.
 2. In the wizard, pick your AI provider (**Codex**, **Claude**, or **agy**), and
    optionally tick "log in now" and "start now".

@@ -13,10 +13,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/stone-siit/ai-terminal-gateway/internal/api"
-	"github.com/stone-siit/ai-terminal-gateway/internal/config"
-	"github.com/stone-siit/ai-terminal-gateway/internal/llm"
-	"github.com/stone-siit/ai-terminal-gateway/internal/sandbox"
+	"github.com/stonehappi/ai-terminal-gateway/internal/api"
+	"github.com/stonehappi/ai-terminal-gateway/internal/config"
+	"github.com/stonehappi/ai-terminal-gateway/internal/llm"
+	"github.com/stonehappi/ai-terminal-gateway/internal/sandbox"
 )
 
 func main() {
