@@ -46,15 +46,14 @@ func main() {
 		}
 	}
 
-	// Select the generation CLI backend.
-	genBin, genModel := cfg.ClaudeBin, cfg.ClaudeModel
-	switch cfg.Provider {
-	case llm.ProviderAgy:
-		genBin, genModel = cfg.AgyBin, cfg.AgyModel
-	case llm.ProviderCodex:
-		genBin, genModel = cfg.CodexBin, cfg.CodexModel
+	// Build a client for every generation backend. Callers may pick one
+	// per-request via the "provider" field; cfg.Provider is the default.
+	clients := map[string]*llm.Client{
+		llm.ProviderClaude: llm.New(llm.ProviderClaude, cfg.ClaudeBin, cfg.ClaudeModel),
+		llm.ProviderAgy:    llm.New(llm.ProviderAgy, cfg.AgyBin, cfg.AgyModel),
+		llm.ProviderCodex:  llm.New(llm.ProviderCodex, cfg.CodexBin, cfg.CodexModel),
 	}
-	srv := api.NewServer(cfg, llm.New(cfg.Provider, genBin, genModel), executor, log)
+	srv := api.NewServer(cfg, clients, cfg.Provider, executor, log)
 
 	httpServer := &http.Server{
 		Addr:              ":" + cfg.Port,
@@ -63,7 +62,7 @@ func main() {
 	}
 
 	go func() {
-		log.Info("gateway listening", "port", cfg.Port, "backend", cfg.SandboxBackend, "provider", cfg.Provider, "model", genModel)
+		log.Info("gateway listening", "port", cfg.Port, "backend", cfg.SandboxBackend, "default_provider", cfg.Provider)
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("server error", "err", err)
 			os.Exit(1)

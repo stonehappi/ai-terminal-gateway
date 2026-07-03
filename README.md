@@ -75,8 +75,10 @@ Request body:
 | ---------- | ------ | -------- | -------------------------------------------- |
 | `prompt`   | string | yes      | The request — a question to answer or a task to perform. |
 | `language` | string | no       | Force `"python"` or `"bash"`. Otherwise the model picks (and may choose to answer without code). |
+| `provider` | string | no       | Pick the generation backend for this request: `"claude"`, `"agy"`, or `"codex"`. Defaults to `LLM_PROVIDER`. |
 
-The model chooses the response `mode`. The gateway returns one of two shapes.
+The model chooses the response `mode`; every response echoes back the
+`provider` that handled it. The gateway returns one of two shapes.
 
 **Answer mode** (business-assistant reply — no code is run):
 
@@ -89,6 +91,7 @@ curl -s http://localhost:8081/v1/run \
 
 ```json
 {
+  "provider": "claude",
   "mode": "answer",
   "answer": "Subject: Friendly reminder — invoice #1234\n\nHi ..."
 }
@@ -105,6 +108,7 @@ curl -s http://localhost:8081/v1/run \
 
 ```json
 {
+  "provider": "claude",
   "mode": "script",
   "language": "python",
   "script": "def is_prime(n): ...",
@@ -117,6 +121,16 @@ curl -s http://localhost:8081/v1/run \
     "duration_ms": 412
   }
 }
+```
+
+**Choosing a provider per request** — override `LLM_PROVIDER` per call with the
+`provider` field (the CLI must be installed and logged in on the server):
+
+```sh
+curl -s http://localhost:8081/v1/run \
+  -H "Authorization: Bearer dev-key-123" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"list the first 10 prime numbers","provider":"codex"}' | jq
 ```
 
 ## Generation providers

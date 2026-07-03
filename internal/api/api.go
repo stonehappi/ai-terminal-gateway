@@ -14,17 +14,20 @@ import (
 	"github.com/stone-siit/ai-terminal-gateway/internal/sandbox"
 )
 
-// Server ties together the LLM client and sandbox executor behind HTTP handlers.
+// Server ties together the LLM clients and sandbox executor behind HTTP
+// handlers. One client is registered per provider; requests may select one.
 type Server struct {
-	cfg      *config.Config
-	llm      *llm.Client
-	executor sandbox.Executor
-	log      *slog.Logger
+	cfg             *config.Config
+	llms            map[string]*llm.Client
+	defaultProvider string
+	executor        sandbox.Executor
+	log             *slog.Logger
 }
 
-// NewServer constructs a Server.
-func NewServer(cfg *config.Config, l *llm.Client, e sandbox.Executor, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, llm: l, executor: e, log: log}
+// NewServer constructs a Server. llms maps each provider name to its client, and
+// defaultProvider names the one used when a request omits "provider".
+func NewServer(cfg *config.Config, llms map[string]*llm.Client, defaultProvider string, e sandbox.Executor, log *slog.Logger) *Server {
+	return &Server{cfg: cfg, llms: llms, defaultProvider: defaultProvider, executor: e, log: log}
 }
 
 // Handler returns the root HTTP handler with all routes wired up.
@@ -38,9 +41,11 @@ func (s *Server) Handler() http.Handler {
 type runRequest struct {
 	Prompt   string `json:"prompt"`
 	Language string `json:"language,omitempty"` // optional: "python" or "bash"
+	Provider string `json:"provider,omitempty"` // optional: "claude", "agy", or "codex"; defaults to LLM_PROVIDER
 }
 
 type runResponse struct {
+	Provider    string          `json:"provider"`
 	Mode        string          `json:"mode"`
 	Answer      string          `json:"answer,omitempty"`
 	Language    string          `json:"language,omitempty"`
@@ -68,11 +73,22 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Select the generation backend: request "provider" overrides the default.
+	provider := strings.ToLower(strings.TrimSpace(req.Provider))
+	if provider == "" {
+		provider = s.defaultProvider
+	}
+	client, ok := s.llms[provider]
+	if !ok {
+		writeError(w, http.StatusBadRequest, "unknown provider (want 'claude', 'agy', or 'codex')")
+		return
+	}
+
 	// Generate the script from the prompt.
 	genCtx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
 	defer cancel()
 
-	gen, err := s.llm.Generate(genCtx, req.Prompt, req.Language)
+	gen, err := client.Generate(genCtx, req.Prompt, req.Language)
 	if err != nil {
 		s.log.Error("generation failed", "err", err)
 		writeError(w, http.StatusBadGateway, "failed to handle request: "+err.Error())
@@ -82,8 +98,9 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 	// Assistant mode: answer directly, no sandbox execution.
 	if gen.Mode == llm.ModeAnswer {
 		writeJSON(w, http.StatusOK, runResponse{
-			Mode:   llm.ModeAnswer,
-			Answer: gen.Answer,
+			Provider: provider,
+			Mode:     llm.ModeAnswer,
+			Answer:   gen.Answer,
 		})
 		return
 	}
@@ -105,6 +122,7 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, runResponse{
+		Provider:    provider,
 		Mode:        llm.ModeScript,
 		Language:    lang,
 		Script:      gen.Script,
