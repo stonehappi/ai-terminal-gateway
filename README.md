@@ -40,9 +40,10 @@ installer:
      local no-isolation mode),
    - registers the gateway to **start automatically every time you log in**.
 
-When it finishes it shows your local URL (`http://localhost:8081`) and your API
-key. You still need an account for the chosen AI CLI — the wizard can open its
-login page for you. To remove it, uninstall from *Add or remove programs*.
+When it finishes it opens **`YOUR-API-KEY.txt`** (saved in the install folder)
+showing your local URL (`http://localhost:8081`) and API key, with a ready-to-use
+`curl` example. You still need an account for the chosen AI CLI — the wizard can
+open its login page for you. To remove it, uninstall from *Add or remove programs*.
 
 > **Building the installer (maintainers):** requires Go and
 > [Inno Setup 6](https://jrsoftware.org/isinfo.php)

@@ -76,7 +76,32 @@ if ($LoginNow) {
 
 if ($StartNow) { Start-ScheduledTask -TaskName 'AITerminalGateway' }
 
-# --- Summary ---
+# --- Write the key to a readable file and open it so the user can copy it ---
+$keyFile = Join-Path $appRoot 'YOUR-API-KEY.txt'
+@(
+    'AI Terminal Gateway - your access details',
+    '==========================================',
+    '',
+    "  URL:      http://localhost:$Port",
+    "  API key:  $key",
+    "  Provider: $Provider",
+    "  Sandbox:  $backendResolved",
+    '',
+    "Send this header on every request to http://localhost:$Port/v1/run :",
+    '',
+    "  Authorization: Bearer $key",
+    '',
+    'Example:',
+    "  curl http://localhost:$Port/v1/run -H ""Authorization: Bearer $key"" \",
+    "       -d '{""prompt"":""list the first 10 prime numbers""}'",
+    '',
+    'Keep this key private. To change it, edit GATEWAY_API_KEYS in:',
+    "  $envFile",
+    'The gateway starts automatically each time you log in.'
+) | Set-Content -Path $keyFile -Encoding UTF8
+try { Start-Process notepad.exe $keyFile } catch { }
+
+# --- Summary (console) ---
 Write-Host ''
 Write-Host '======================================================'
 Write-Host ' AI Terminal Gateway is set up.'
@@ -86,5 +111,6 @@ Write-Host "   Provider: $Provider    Sandbox: $backendResolved"
 if ($backendResolved -eq 'docker') {
     Write-Host '   Note: start Docker Desktop for code-execution requests.'
 }
+Write-Host "   Your key was saved to and opened from: $keyFile"
 Write-Host '   It will start automatically each time you log in.'
 Write-Host '======================================================'
