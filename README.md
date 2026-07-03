@@ -32,6 +32,10 @@ installer:
 1. Download **`ai-terminal-gateway-setup.exe`** from the
    [Releases](https://github.com/stonehappi/ai-terminal-gateway/releases) page
    and double-click it.
+   - Windows may show a blue **"Windows protected your PC"** screen because the
+     installer isn't code-signed yet. It's safe to run: click **More info** →
+     **Run anyway**. (You can verify the download first with the published
+     `.sha256` checksum: `Get-FileHash .\ai-terminal-gateway-setup.exe -Algorithm SHA256`.)
 2. In the wizard, pick your AI provider (**Codex**, **Claude**, or **agy**), and
    optionally tick "log in now" and "start now".
 3. Click **Install**. The wizard then:

@@ -26,8 +26,31 @@ jobs:
         shell: powershell
         run: powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1
 
+      - name: Compute SHA-256 checksum
+        shell: powershell
+        run: |
+          $exe = "installer\Output\ai-terminal-gateway-setup.exe"
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  ai-terminal-gateway-setup.exe" | Set-Content "installer\Output\ai-terminal-gateway-setup.exe.sha256" -Encoding ascii
+          Write-Host "SHA-256: $hash"
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: installer/Output/ai-terminal-gateway-setup.exe
+          files: |
+            installer/Output/ai-terminal-gateway-setup.exe
+            installer/Output/ai-terminal-gateway-setup.exe.sha256
           generate_release_notes: true
+          body: |
+            ## Install (Windows)
+            Download **ai-terminal-gateway-setup.exe** below and run it.
+
+            > **Windows may show a blue "Windows protected your PC" screen.** This is
+            > SmartScreen warning that the installer isn't code-signed yet — it is safe
+            > to run. Click **More info**, then **Run anyway**.
+            >
+            > To verify the download first, check its SHA-256 against
+            > `ai-terminal-gateway-setup.exe.sha256`:
+            > ```powershell
+            > Get-FileHash .\ai-terminal-gateway-setup.exe -Algorithm SHA256
+            > ```
