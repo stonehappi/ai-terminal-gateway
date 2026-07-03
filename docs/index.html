@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Terminal Gateway — plain English in, answers or real code out</title>
+<meta name="description" content="An HTTP gateway that answers in plain English or writes and runs code in a secure sandbox. Powered by your own Claude Code, agy, or OpenAI Codex login. Go, MIT licensed.">
+<style>
+  /* ---- Amber-CRT terminal identity ------------------------------------ */
+  :root{
+    --bg:#100b06; --panel:#181009; --raise:#1f150b;
+    --text:#f3e7d3; --muted:#a6927a; --faint:#6f5f4b;
+    --border:#2b2013; --accent:#ffb02e; --accent-soft:#3a2a12;
+    --term:#0c0805; --term-text:#f3e7d3; --ok:#8fd694;
+    --shadow:0 18px 50px rgba(0,0,0,.45);
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f5eee0; --panel:#fffdf8; --raise:#fbf4e6;
+      --text:#211a10; --muted:#6d5d45; --faint:#9c8a6e;
+      --border:#e6dac2; --accent:#b06d10; --accent-soft:#f2e4c8;
+      --term:#1a130a; --term-text:#f3e7d3; --ok:#3f8f52;
+      --shadow:0 18px 44px rgba(80,60,20,.12);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#100b06; --panel:#181009; --raise:#1f150b;
+    --text:#f3e7d3; --muted:#a6927a; --faint:#6f5f4b;
+    --border:#2b2013; --accent:#ffb02e; --accent-soft:#3a2a12;
+    --term:#0c0805; --term-text:#f3e7d3; --ok:#8fd694; --shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  :root[data-theme="light"]{
+    --bg:#f5eee0; --panel:#fffdf8; --raise:#fbf4e6;
+    --text:#211a10; --muted:#6d5d45; --faint:#9c8a6e;
+    --border:#e6dac2; --accent:#b06d10; --accent-soft:#f2e4c8;
+    --term:#1a130a; --term-text:#f3e7d3; --ok:#3f8f52; --shadow:0 18px 44px rgba(80,60,20,.12);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--text); font:16px/1.65 var(--sans);
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(1100px 420px at 50% -140px, color-mix(in srgb,var(--accent) 10%, transparent), transparent);}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:980px; margin:0 auto; padding:0 22px}
+  .mono{font-family:var(--mono)}
+  .label{font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+
+  /* Nav */
+  nav{display:flex; align-items:center; justify-content:space-between; padding:20px 0}
+  .brand{display:flex; align-items:center; gap:11px; font-family:var(--mono); font-weight:700; font-size:16px; letter-spacing:.02em}
+  .brand .sq{width:28px;height:28px;border:1px solid var(--accent); border-radius:6px; color:var(--accent);
+    display:grid; place-items:center; font-size:15px; background:var(--accent-soft)}
+  .nav-links{display:flex; gap:24px; align-items:center}
+  .nav-links a{color:var(--muted); font-size:13.5px; font-family:var(--mono)}
+  .nav-links a:hover{color:var(--text); text-decoration:none}
+
+  /* Hero */
+  header.hero{padding:64px 0 48px}
+  .eyebrow{margin:0 0 18px}
+  .eyebrow .prompt{color:var(--accent)}
+  h1{font-family:var(--mono); font-weight:700; font-size:clamp(30px,5.6vw,54px); line-height:1.06;
+    letter-spacing:-.01em; margin:0 0 20px; text-wrap:balance; max-width:16ch}
+  h1 .amber{color:var(--accent)}
+  .cursor{display:inline-block; width:.62ch; height:1.02em; background:var(--accent); transform:translateY(.12em);
+    margin-left:.06em; animation:blink 1.1s steps(2,start) infinite}
+  @keyframes blink{to{opacity:0}}
+  @media (prefers-reduced-motion: reduce){ .cursor{animation:none} }
+  .sub{font-size:clamp(16px,2.1vw,19px); color:var(--muted); max-width:60ch; margin:0 0 30px}
+  .cta{display:flex; gap:13px; flex-wrap:wrap}
+  .btn{display:inline-flex; align-items:center; gap:9px; padding:13px 22px; border-radius:10px;
+    font-weight:600; font-size:15px; font-family:var(--mono); border:1px solid transparent; cursor:pointer}
+  .btn:hover{text-decoration:none}
+  .btn-primary{background:var(--accent); color:#1a1206; box-shadow:var(--shadow)}
+  .btn-primary:hover{filter:brightness(1.07)}
+  .btn-ghost{background:transparent; color:var(--text); border-color:var(--border)}
+  .btn-ghost:hover{border-color:var(--accent)}
+  .os-note{margin-top:15px; font-size:13px; color:var(--faint); font-family:var(--mono)}
+
+  section{padding:46px 0; border-top:1px solid var(--border)}
+  .sec-head{margin-bottom:26px}
+  h2{font-family:var(--mono); font-size:clamp(21px,3.2vw,28px); margin:8px 0 0; letter-spacing:-.01em; text-wrap:balance}
+  .lead{color:var(--muted); max-width:62ch; margin:10px 0 0}
+
+  /* Feature panels */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1px;
+    background:var(--border); border:1px solid var(--border); border-radius:14px; overflow:hidden}
+  .card{background:var(--panel); padding:24px}
+  .card .ico{font-size:20px; margin-bottom:12px}
+  .card h3{margin:0 0 6px; font-size:16px; font-family:var(--mono)}
+  .card p{margin:0; color:var(--muted); font-size:14.5px}
+  .card code{font-family:var(--mono); font-size:.9em; color:var(--accent); background:var(--accent-soft); padding:1px 5px; border-radius:5px}
+
+  /* Flow */
+  .flow{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px}
+  .step{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 18px 20px}
+  .step .n{font-family:var(--mono); color:var(--accent); font-size:13px; letter-spacing:.1em}
+  .step b{display:block; margin:8px 0 5px; font-family:var(--mono); font-size:15px}
+  .step span{color:var(--muted); font-size:14px}
+  .step code{font-family:var(--mono); color:var(--accent)}
+
+  /* Terminal window */
+  .term{background:var(--term); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:var(--shadow)}
+  .term .bar{display:flex; align-items:center; gap:8px; padding:11px 14px; border-bottom:1px solid rgba(255,255,255,.06); background:rgba(255,255,255,.02)}
+  .term .bar i{width:11px;height:11px;border-radius:50%; display:block}
+  .term .bar .r{background:#ff5f56} .term .bar .y{background:#ffbd2e} .term .bar .g{background:#27c93f}
+  .term .bar .t{margin-left:8px; font-family:var(--mono); font-size:12px; color:var(--faint)}
+  .term pre{margin:0; padding:18px 20px; overflow-x:auto; font-family:var(--mono); font-size:13.5px; line-height:1.7; color:var(--term-text)}
+  .term .c{color:#8a7a63} .term .p{color:var(--accent)} .term .s{color:#e6c88a} .term .o{color:var(--ok)}
+
+  /* Providers */
+  .prov{display:flex; gap:12px; flex-wrap:wrap}
+  .prov .p{display:flex; align-items:center; gap:9px; background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:11px 16px; font-family:var(--mono); font-weight:600; font-size:14px}
+  .prov .dot{width:8px;height:8px;border-radius:50%; background:var(--accent)}
+
+  /* CTA */
+  .band{background:var(--raise); border:1px solid var(--border); border-radius:16px; padding:40px 32px; text-align:center}
+  .band h2{margin:0 0 8px}
+  .band p{color:var(--muted); max-width:56ch; margin:0 auto 22px}
+  .band .cta{justify-content:center}
+
+  footer{border-top:1px solid var(--border); padding:30px 0 54px; color:var(--muted); font-size:13.5px}
+  footer .row{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:center}
+  footer .nav-links a{font-size:13px}
+  .disclaimer{margin-top:18px; font-size:12px; line-height:1.6; color:var(--faint); max-width:80ch; font-family:var(--mono)}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand"><span class="sq">▸</span> ai-terminal-gateway</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/stone-siit/ai-terminal-gateway">GitHub</a>
+    </div>
+  </nav>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow label"><span class="prompt">$</span> open source &middot; go &middot; mit licensed</p>
+    <h1>Plain English in. <span class="amber">Real code out.</span><span class="cursor" aria-hidden="true"></span></h1>
+    <p class="sub">A small HTTP gateway that turns a natural-language request into a direct answer —
+      or a script it runs in a locked-down sandbox and hands you the result. Powered by your own
+      AI CLI login. No API keys, no per-call bills.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/stone-siit/ai-terminal-gateway/releases/latest/download/ai-terminal-gateway-setup.exe">
+        &#8595;&nbsp; Download for Windows
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/stone-siit/ai-terminal-gateway">
+        &lt;/&gt;&nbsp; View code on GitHub
+      </a>
+    </div>
+    <p class="os-note"># windows installer &middot; or build from source on macOS / linux</p>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="label">// what it does</span>
+      <h2>One endpoint. It answers, or it writes and runs the code.</h2>
+      <p class="lead">The gateway decides whether your request needs a plain reply or actual
+        execution — you just send the prompt.</p>
+    </div>
+    <div class="grid">
+      <div class="card"><div class="ico">🧠</div><h3>Assistant &amp; coder</h3>
+        <p>Ask a question, get a plain-text answer. Give it a task, it writes and runs the code — automatically.</p></div>
+      <div class="card"><div class="ico">🔌</div><h3>Bring your own AI</h3>
+        <p>Runs on Claude Code, agy, or OpenAI Codex. Set a default, or choose per request.</p></div>
+      <div class="card"><div class="ico">💸</div><h3>No API bills</h3>
+        <p>Uses your existing CLI login, not a metered key. With agy or Codex, run it free on your own account.</p></div>
+      <div class="card"><div class="ico">🔒</div><h3>Sandboxed by default</h3>
+        <p>Generated code runs in a network-less Docker container with CPU, memory, and process limits, then is discarded.</p></div>
+      <div class="card"><div class="ico">🪟</div><h3>One click on Windows</h3>
+        <p>A wizard generates a secure key, detects Docker, and sets the gateway to start automatically at logon.</p></div>
+      <div class="card"><div class="ico">🎚️</div><h3>Per-request routing</h3>
+        <p>Send <code>"provider":"codex"</code> on any call to route it to a specific model. The reply says which handled it.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="label">// how it works</span>
+      <h2>Send a prompt. The gateway does the rest.</h2>
+    </div>
+    <div class="flow">
+      <div class="step"><span class="n">01</span><b>Prompt</b><span>POST a request to <code>/v1/run</code>.</span></div>
+      <div class="step"><span class="n">02</span><b>Decide</b><span>Your AI CLI answers, or writes a self-contained script.</span></div>
+      <div class="step"><span class="n">03</span><b>Run safely</b><span>Scripts execute in an isolated, network-less sandbox.</span></div>
+      <div class="step"><span class="n">04</span><b>Result</b><span>You get the answer, or the script plus its output.</span></div>
+    </div>
+
+    <div style="margin-top:30px" class="term">
+      <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="t">bash — /v1/run</span></div>
+<pre><span class="c"># ask anything, or hand it a task to compute</span>
+<span class="p">$</span> curl -s http://localhost:8081/v1/run \
+    -H <span class="s">"Authorization: Bearer YOUR_KEY"</span> \
+    -d <span class="s">'{"prompt":"list the first 10 prime numbers"}'</span>
+
+<span class="o">{ "provider":"codex", "mode":"script", "script":"...",</span>
+<span class="o">  "execution":{ "stdout":"2 3 5 7 11 13 17 19 23 29", "exit_code":0 } }</span></pre>
+    </div>
+  </div>
+</section>
+
+<section id="providers">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="label">// works with</span>
+      <h2>Whichever coding CLI you already have.</h2>
+      <p class="lead">Auth stays on your machine — the gateway drives the CLI you're logged in to.</p>
+    </div>
+    <div class="prov">
+      <div class="p"><span class="dot"></span> Claude Code</div>
+      <div class="p"><span class="dot"></span> agy</div>
+      <div class="p"><span class="dot"></span> OpenAI Codex</div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="band">
+      <span class="label">// get started</span>
+      <h2>Up and running in a minute</h2>
+      <p>Windows: download the installer and follow the wizard — no terminal, no config.
+        Everyone else: clone the repo and <span class="mono" style="color:var(--accent)">go run .</span></p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/stone-siit/ai-terminal-gateway/releases/latest/download/ai-terminal-gateway-setup.exe">&#8595;&nbsp; Download for Windows</a>
+        <a class="btn btn-ghost" href="https://github.com/stone-siit/ai-terminal-gateway">Read the docs on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <div class="mono">© 2026 stone-siit &middot; MIT licensed</div>
+      <div class="nav-links">
+        <a href="https://github.com/stone-siit/ai-terminal-gateway">GitHub</a>
+        <a href="https://github.com/stone-siit/ai-terminal-gateway/releases">Releases</a>
+        <a href="https://github.com/stone-siit/ai-terminal-gateway/blob/main/LICENSE">License</a>
+      </div>
+    </div>
+    <p class="disclaimer">You run this with your own Claude Code / agy / OpenAI Codex login and are responsible
+      for complying with each provider's Terms of Service and Usage Policy — do not use it to resell or proxy
+      access to those services. Not affiliated with, endorsed by, or sponsored by Anthropic, OpenAI, or the agy
+      vendor; product names identify the tools this gateway integrates with.</p>
+  </div>
+</footer>
+</body>
+</html>
