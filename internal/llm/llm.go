@@ -186,18 +186,24 @@ func (c *Client) runAgy(ctx context.Context, prompt string) (string, error) {
 	return stdout.String(), nil
 }
 
-// runCodex drives the OpenAI Codex CLI in headless "exec" mode, which takes the
-// prompt as an argument and prints the model's final message as raw text (no
-// JSON envelope) to stdout. --skip-git-repo-check lets it run outside a git
-// repo (the gateway's working directory is arbitrary).
+// runCodex drives the OpenAI Codex CLI in headless "exec" mode. It prints the
+// model's final message as raw text (no JSON envelope) to stdout; banner/log
+// noise goes to stderr.
+//
+// The prompt is fed on stdin with "-" as the prompt argument rather than passed
+// as a CLI arg: the prompt contains quotes and braces, and on Windows `codex`
+// is an npm .cmd shim whose batch argument parsing mangles those characters.
+// stdin avoids all command-line quoting. --skip-git-repo-check lets it run
+// outside a git repo (the gateway's working directory is arbitrary).
 func (c *Client) runCodex(ctx context.Context, prompt string) (string, error) {
 	args := []string{"exec", "--skip-git-repo-check"}
 	if c.model != "" {
 		args = append(args, "--model", c.model)
 	}
-	args = append(args, prompt)
+	args = append(args, "-") // read the prompt from stdin
 
 	cmd := exec.CommandContext(ctx, c.bin, args...)
+	cmd.Stdin = strings.NewReader(prompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
