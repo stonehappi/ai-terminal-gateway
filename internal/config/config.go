@@ -14,6 +14,11 @@ type Config struct {
 	// HTTP
 	Port string
 
+	// LogFile, if set, is a path the gateway writes its JSON logs to instead of
+	// stdout. Required when the binary is built as a Windows GUI app (no console),
+	// so logs aren't lost. Empty = log to stdout (default, dev-friendly).
+	LogFile string
+
 	// Auth: callers must present one of these as a Bearer token. If empty,
 	// auth is disabled (development only) and a warning is logged.
 	GatewayAPIKeys map[string]struct{}
@@ -41,6 +46,7 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := &Config{
 		Port:           getenv("PORT", "8081"),
+		LogFile:        os.Getenv("GATEWAY_LOG_FILE"),
 		Provider:       getenv("LLM_PROVIDER", "claude"),
 		ClaudeBin:      getenv("CLAUDE_BIN", "claude"),
 		ClaudeModel:    os.Getenv("CLAUDE_MODEL"),

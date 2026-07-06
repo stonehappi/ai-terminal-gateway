@@ -16,9 +16,11 @@ if (Test-Path $envFile) {
 }
 
 # Build the binary once if it's missing (keeps startup fast on later logons).
+# -H windowsgui => GUI subsystem, so no console window ever appears (the user
+# can't close it by accident). Logs go to GATEWAY_LOG_FILE from .env.
 $exe = Join-Path $root 'ai-gateway-api.exe'
 if (-not (Test-Path $exe)) {
-    & go build -o $exe .
+    & go build -ldflags '-H windowsgui' -o $exe .
 }
 
 # Run in the foreground; the scheduled task owns this process's lifetime.

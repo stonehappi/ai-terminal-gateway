@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,12 +21,31 @@ import (
 )
 
 func main() {
+	// Bootstrap logger to stdout so config errors are visible during dev.
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	cfg, err := config.Load()
 	if err != nil {
 		log.Error("configuration error", "err", err)
 		os.Exit(1)
+	}
+
+	// If a log file is configured, switch to it. When the binary is built as a
+	// Windows GUI app (-H windowsgui) there is no console, so stdout goes
+	// nowhere — writing to a file keeps the logs. Fall back to stdout on error.
+	var logOut io.Writer = os.Stdout
+	var logFileErr error
+	if cfg.LogFile != "" {
+		if f, ferr := os.OpenFile(cfg.LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); ferr != nil {
+			logFileErr = ferr
+		} else {
+			defer f.Close()
+			logOut = f
+		}
+	}
+	log = slog.New(slog.NewJSONHandler(logOut, nil))
+	if logFileErr != nil {
+		log.Warn("could not open GATEWAY_LOG_FILE; logging to stdout", "path", cfg.LogFile, "err", logFileErr)
 	}
 	if cfg.AuthDisabled() {
 		log.Warn("no GATEWAY_API_KEYS configured — /v1/run is UNAUTHENTICATED (dev mode)")

@@ -43,6 +43,8 @@ if (Test-Path $envFile) {
         '# Local runtime config for the AI Terminal Gateway. NOT committed.',
         "GATEWAY_API_KEYS=$key",
         "PORT=$Port",
+        "# The gateway runs windowless (no console), so it logs to this file:",
+        "GATEWAY_LOG_FILE=$(Join-Path $appRoot 'gateway.log')",
         "LLM_PROVIDER=$Provider",
         'CLAUDE_BIN=claude',
         'CLAUDE_MODEL=',
@@ -119,5 +121,7 @@ if ($backendResolved -eq 'docker') {
     Write-Host '   Note: start Docker Desktop for code-execution requests.'
 }
 Write-Host "   Your key was saved to and opened from: $keyFile"
+Write-Host '   It runs in the background with no window, so it can''t be closed by accident.'
+Write-Host "   Logs: $(Join-Path $appRoot 'gateway.log')"
 Write-Host '   It will start automatically each time you log in.'
 Write-Host '======================================================'

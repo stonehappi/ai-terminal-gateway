@@ -6,8 +6,11 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-Write-Host '[1/2] Building ai-gateway-api.exe ...'
-& go build -o (Join-Path $root 'ai-gateway-api.exe') .
+Write-Host '[1/2] Building ai-gateway-api.exe (GUI subsystem, no console window) ...'
+# -H windowsgui makes it a GUI-subsystem binary so Windows never attaches a
+# console window — a general user can't accidentally close it and kill the
+# gateway. Logs go to GATEWAY_LOG_FILE (set in .env) since there is no console.
+& go build -ldflags '-H windowsgui' -o (Join-Path $root 'ai-gateway-api.exe') .
 if ($LASTEXITCODE -ne 0) { throw 'go build failed' }
 
 # Locate the Inno Setup compiler.

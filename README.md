@@ -57,7 +57,9 @@ installer:
    - generates a secure API key and a `.env` for you,
    - auto-detects Docker (uses the isolated sandbox if present, otherwise a
      local no-isolation mode),
-   - registers the gateway to **start automatically every time you log in**.
+   - registers the gateway to **start automatically every time you log in**,
+     running **in the background with no console window** — so it can't be
+     closed by accident. Logs are written to `gateway.log` in the install folder.
 
 When it finishes it opens **`YOUR-API-KEY.txt`** (saved in the install folder)
 showing your local URL (`http://localhost:8081`) and API key, with a ready-to-use
@@ -81,15 +83,25 @@ Prefer not to use the installer? Build and register auto-start yourself:
 ```powershell
 git clone https://github.com/stonehappi/ai-terminal-gateway
 cd ai-terminal-gateway
-Copy-Item .env.example .env          # then edit — set GATEWAY_API_KEYS
-go build -o ai-gateway-api.exe .
+Copy-Item .env.example .env          # then edit — set GATEWAY_API_KEYS and GATEWAY_LOG_FILE
 
-# Run once in the foreground to check it works (Ctrl+C to stop):
+# Build as a GUI app so it runs with NO console window — a general user can't
+# close it by accident and kill the gateway. Logs go to GATEWAY_LOG_FILE.
+go build -ldflags "-H windowsgui" -o ai-gateway-api.exe .
+
+# Run once to check it works (it opens no window; tail the log to watch it):
 Get-Content .env | Where-Object { $_ -and $_ -notmatch '^\s*#' } | ForEach-Object {
   $k,$v = $_ -split '=',2; [Environment]::SetEnvironmentVariable($k, $v)
 }
-.\ai-gateway-api.exe
+Start-Process .\ai-gateway-api.exe
+Get-Content .\gateway.log -Wait        # Ctrl+C stops tailing (not the gateway)
 ```
+
+> **Windowless by design:** the released binary is built with `-H windowsgui`, so
+> Windows never attaches a console window — the gateway can't be closed by
+> accident. Because there's no console, set **`GATEWAY_LOG_FILE`** in `.env` (the
+> installer does this automatically) so logs are captured to a file. Omit the
+> `-ldflags` flag if you *want* a console for debugging.
 
 Register the background auto-start (per-user Scheduled Task, no admin needed —
 runs hidden at every logon and restarts if it crashes):
