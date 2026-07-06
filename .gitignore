@@ -2,5 +2,8 @@
 /ai-gateway-api.exe
 .env
 
+# Runtime log file (GATEWAY_LOG_FILE)
+/gateway.log
+
 # Installer build output
 /installer/Output/
