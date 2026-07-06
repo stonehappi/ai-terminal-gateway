@@ -8,7 +8,7 @@
   :root{
     --bg:#100b06; --panel:#181009; --raise:#1f150b; --text:#f3e7d3; --muted:#a6927a;
     --faint:#6f5f4b; --border:#2b2013; --accent:#ffb02e; --accent-soft:#3a2a12;
-    --term:#0c0805; --ok:#8fd694; --err:#ff7a6b;
+    --term:#0c0805; --term-text:#f3e7d3; --ok:#8fd694; --err:#ff7a6b;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
@@ -29,8 +29,9 @@
   label{display:block; font-family:var(--mono); font-size:12px; letter-spacing:.1em;
     text-transform:uppercase; color:var(--faint); margin:0 0 6px}
   .card{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:16px}
-  textarea, input, select{width:100%; background:var(--term); color:var(--text); border:1px solid var(--border);
+  textarea, input, select{width:100%; background:var(--term); color:var(--term-text); border:1px solid var(--border);
     border-radius:9px; padding:11px 12px; font-family:var(--mono); font-size:14px; resize:vertical}
+  textarea::placeholder, input::placeholder{color:var(--faint)}
   textarea{min-height:82px}
   .row{display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin-top:12px}
   .row > div{flex:1; min-width:150px}
