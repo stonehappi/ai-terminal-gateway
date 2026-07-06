@@ -1,5 +1,9 @@
 # AI Gateway API
 
+🌐 **Website:** <https://stonehappi.github.io/ai-terminal-gateway/> &nbsp;·&nbsp;
+⬇️ **[Download the Windows installer](https://github.com/stonehappi/ai-terminal-gateway/releases/latest/download/ai-terminal-gateway-setup.exe)** &nbsp;·&nbsp;
+📦 **[Releases](https://github.com/stonehappi/ai-terminal-gateway/releases)**
+
 An HTTP API gateway that answers natural-language requests — either as a
 **business assistant** (plain-text reply) or by running **AI-generated code** in
 a cloud terminal sandbox.
@@ -24,7 +28,18 @@ POST /v1/run                      generation CLI           Docker sandbox
                                             {lang,script}       mem/cpu/pid caps)        stderr, exit_code }
 ```
 
-## Install on Windows (no coding required)
+## Install
+
+Pick your platform. Each path can run the gateway **in the background** and
+**start it automatically** at login or boot.
+
+| OS | Method | Auto-start mechanism |
+| --- | --- | --- |
+| **Windows** | One-click installer (no coding) | Scheduled Task at logon |
+| **macOS** | Build from source | `launchd` LaunchAgent |
+| **Linux** | Build from source | `systemd` user service |
+
+### Windows — one-click installer (no coding required)
 
 Non-technical users don't need Go, a terminal, or `.env` editing — use the
 installer:
@@ -58,6 +73,134 @@ pick a provider, and click Run. No terminal or `curl` needed.
 > (`winget install JRSoftware.InnoSetup`). Run
 > `powershell -ExecutionPolicy Bypass -File scripts\build-installer.ps1`; the
 > `Setup.exe` lands in `installer\Output\`.
+
+### Windows — build from source (advanced)
+
+Prefer not to use the installer? Build and register auto-start yourself:
+
+```powershell
+git clone https://github.com/stonehappi/ai-terminal-gateway
+cd ai-terminal-gateway
+Copy-Item .env.example .env          # then edit — set GATEWAY_API_KEYS
+go build -o ai-gateway-api.exe .
+
+# Run once in the foreground to check it works (Ctrl+C to stop):
+Get-Content .env | Where-Object { $_ -and $_ -notmatch '^\s*#' } | ForEach-Object {
+  $k,$v = $_ -split '=',2; [Environment]::SetEnvironmentVariable($k, $v)
+}
+.\ai-gateway-api.exe
+```
+
+Register the background auto-start (per-user Scheduled Task, no admin needed —
+runs hidden at every logon and restarts if it crashes):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
+
+Start-ScheduledTask -TaskName AITerminalGateway   # start now, without logging out
+Stop-ScheduledTask  -TaskName AITerminalGateway   # stop it
+powershell -ExecutionPolicy Bypass -File scripts\uninstall-autostart.ps1   # remove
+```
+
+### macOS — build from source
+
+**Prerequisites:** Go 1.23+ (`brew install go`), Docker Desktop, and one
+generation CLI installed and logged in (e.g. Claude Code — verify with
+`claude -p "hi"`).
+
+```sh
+git clone https://github.com/stonehappi/ai-terminal-gateway
+cd ai-terminal-gateway
+cp .env.example .env          # then edit — set GATEWAY_API_KEYS
+go build -o ai-gateway-api .
+
+# Run in the foreground to check it works (Ctrl+C to stop):
+set -a && . ./.env && set +a
+./ai-gateway-api
+```
+
+Open <http://localhost:8081> for the web console.
+
+**Run in the background + auto-start at login (launchd).** Create
+`~/Library/LaunchAgents/com.stonehappi.aigateway.plist` (replace
+`/Users/you/ai-terminal-gateway` with your clone path):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.stonehappi.aigateway</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>cd /Users/you/ai-terminal-gateway && set -a && . ./.env && set +a && exec ./ai-gateway-api</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/ai-gateway.log</string>
+  <key>StandardErrorPath</key><string>/tmp/ai-gateway.err</string>
+</dict>
+</plist>
+```
+
+```sh
+launchctl load ~/Library/LaunchAgents/com.stonehappi.aigateway.plist   # start now + at every login
+launchctl unload ~/Library/LaunchAgents/com.stonehappi.aigateway.plist # stop + disable
+tail -f /tmp/ai-gateway.log                                            # watch logs
+```
+
+The `sh -c` wrapper loads your `.env` before launching, and `KeepAlive` restarts
+the gateway if it exits.
+
+### Linux — build from source
+
+**Prerequisites:** Go 1.23+, Docker, and one generation CLI installed and logged
+in. On Debian/Ubuntu: `sudo apt install golang docker.io` (or use the official
+Go tarball for 1.23+).
+
+```sh
+git clone https://github.com/stonehappi/ai-terminal-gateway
+cd ai-terminal-gateway
+cp .env.example .env          # then edit — set GATEWAY_API_KEYS
+CGO_ENABLED=0 go build -o ai-gateway-api .
+
+# Run in the foreground to check it works (Ctrl+C to stop):
+set -a && . ./.env && set +a
+./ai-gateway-api
+```
+
+Open <http://localhost:8081> for the web console.
+
+**Run in the background + auto-start at boot (systemd user service).** Create
+`~/.config/systemd/user/ai-gateway.service` (adjust the paths to your clone):
+
+```ini
+[Unit]
+Description=AI Terminal Gateway
+After=docker.service
+
+[Service]
+WorkingDirectory=%h/ai-terminal-gateway
+EnvironmentFile=%h/ai-terminal-gateway/.env
+ExecStart=%h/ai-terminal-gateway/ai-gateway-api
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+```
+
+```sh
+systemctl --user daemon-reload
+systemctl --user enable --now ai-gateway      # start now + at every login
+loginctl enable-linger "$USER"                # keep it running without an active session
+systemctl --user status ai-gateway            # check it
+journalctl --user -u ai-gateway -f            # tail the JSON logs
+```
+
+For a **system-wide** service (dedicated user, starts at boot before any login),
+use the production `systemd` unit in [Deployment](#3-run-as-a-service) instead.
 
 ## Requirements (build from source)
 

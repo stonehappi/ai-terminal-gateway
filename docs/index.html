@@ -117,6 +117,19 @@
     border-radius:10px; padding:11px 16px; font-family:var(--mono); font-weight:600; font-size:14px}
   .prov .dot{width:8px;height:8px;border-radius:50%; background:var(--accent)}
 
+  /* Per-OS install */
+  .os-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:16px; margin-top:26px}
+  .os{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:22px 22px 20px; display:flex; flex-direction:column}
+  .os h3{margin:0; font-family:var(--mono); font-size:17px; display:flex; align-items:center; gap:9px}
+  .os .tagline{color:var(--faint); font-family:var(--mono); font-size:12px; margin:5px 0 16px}
+  .os ol{margin:0; padding-left:20px; color:var(--muted); font-size:14px; line-height:1.55}
+  .os ol li{margin-bottom:13px}
+  .os ol li b{color:var(--text); font-weight:600}
+  .os pre{background:var(--term); color:var(--term-text); border:1px solid var(--border); border-radius:8px;
+    padding:11px 12px; margin:8px 0 0; overflow-x:auto; font-family:var(--mono); font-size:12.5px; line-height:1.65}
+  .os pre .p{color:var(--accent)} .os pre .c{color:#8a7a63}
+  .os .foot{margin-top:auto; padding-top:15px; font-size:12.5px; color:var(--faint); font-family:var(--mono)}
+
   /* CTA */
   .band{background:var(--raise); border:1px solid var(--border); border-radius:16px; padding:40px 32px; text-align:center}
   .band h2{margin:0 0 8px}
@@ -230,14 +243,84 @@
 
 <section id="install">
   <div class="wrap">
-    <div class="band">
+    <div class="sec-head">
       <span class="label">// get started</span>
-      <h2>Up and running in a minute</h2>
-      <p>Windows: download the installer and follow the wizard — no terminal, no config.
-        Everyone else: clone the repo and <span class="mono" style="color:var(--accent)">go run .</span></p>
+      <h2>Install on your OS</h2>
+      <p class="lead">Windows has a one-click installer. macOS and Linux build from source in a few
+        commands. Each option can run the gateway in the background and start it automatically at
+        login or boot.</p>
+    </div>
+
+    <div class="os-grid">
+      <!-- Windows -->
+      <div class="os">
+        <h3>🪟 Windows</h3>
+        <p class="tagline">one-click installer &middot; no terminal</p>
+        <ol>
+          <li>Download
+            <a href="https://github.com/stonehappi/ai-terminal-gateway/releases/latest/download/ai-terminal-gateway-setup.exe">ai-terminal-gateway-setup.exe</a>
+            and double-click. On the blue SmartScreen prompt: <b>More info → Run anyway</b>.</li>
+          <li>In the wizard, pick your provider (<b>Claude</b>, <b>agy</b>, or <b>Codex</b>) and tick
+            <b>log in now</b> + <b>start now</b>.</li>
+          <li>Click <b>Install</b>. It generates a secure API key, detects Docker, and registers
+            auto-start at every logon.</li>
+          <li>Open the built-in console:
+            <pre><span class="p">→</span> http://localhost:8081</pre>
+          </li>
+        </ol>
+        <p class="foot"># background + auto-start: built in, runs hidden at logon</p>
+      </div>
+
+      <!-- macOS -->
+      <div class="os">
+        <h3>🍎 macOS</h3>
+        <p class="tagline">build from source &middot; Go 1.23+ &middot; Docker</p>
+        <ol>
+          <li>Install Go and a coding CLI you're logged in to (e.g. Claude Code):
+            <pre>brew install go</pre>
+          </li>
+          <li>Clone, configure, and build:
+            <pre>git clone https://github.com/stonehappi/ai-terminal-gateway
+cd ai-terminal-gateway
+cp .env.example .env   <span class="c"># set GATEWAY_API_KEYS</span>
+go build -o ai-gateway-api .</pre>
+          </li>
+          <li>Run it:
+            <pre>set -a &amp;&amp; . ./.env &amp;&amp; set +a
+./ai-gateway-api</pre>
+          </li>
+        </ol>
+        <p class="foot"># background + auto-start: launchd LaunchAgent — see the README</p>
+      </div>
+
+      <!-- Linux -->
+      <div class="os">
+        <h3>🐧 Linux</h3>
+        <p class="tagline">build from source &middot; systemd service</p>
+        <ol>
+          <li>Install Go + Docker and log in to a coding CLI.</li>
+          <li>Clone, configure, and build:
+            <pre>git clone https://github.com/stonehappi/ai-terminal-gateway
+cd ai-terminal-gateway
+cp .env.example .env   <span class="c"># set GATEWAY_API_KEYS</span>
+CGO_ENABLED=0 go build -o ai-gateway-api .</pre>
+          </li>
+          <li>Run it directly, or install the systemd unit for boot-time start:
+            <pre>set -a &amp;&amp; . ./.env &amp;&amp; set +a
+./ai-gateway-api</pre>
+          </li>
+        </ol>
+        <p class="foot"># background + auto-start: systemd user unit — see the README</p>
+      </div>
+    </div>
+
+    <div class="band" style="margin-top:26px">
+      <h2>Prefer the quick path?</h2>
+      <p>Windows users can skip all of this — download the installer and follow the wizard.
+        Full step-by-step docs for every OS live on GitHub.</p>
       <div class="cta">
         <a class="btn btn-primary" href="https://github.com/stonehappi/ai-terminal-gateway/releases/latest/download/ai-terminal-gateway-setup.exe">&#8595;&nbsp; Download for Windows</a>
-        <a class="btn btn-ghost" href="https://github.com/stonehappi/ai-terminal-gateway">Read the docs on GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/stonehappi/ai-terminal-gateway#install">Full install docs</a>
       </div>
     </div>
   </div>
