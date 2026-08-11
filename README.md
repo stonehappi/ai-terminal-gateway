@@ -521,10 +521,12 @@ Stop-ScheduledTask  -TaskName AITerminalGateway   # stop it
 powershell -File scripts\uninstall-autostart.ps1  # remove auto-start
 ```
 
-The task runs `scripts\gateway-autostart.ps1`, which loads `.env`, builds
-`ai-gateway-api.exe` if missing, and launches it. **Set `GATEWAY_API_KEYS` in
-`.env` before enabling auto-start** — otherwise the gateway comes up
-unauthenticated on port 8081.
+### Updating the Gateway
+
+**For normal users (one-click):**
+- Double-click **`update.bat`** in the project folder (or run `powershell -ExecutionPolicy Bypass -File scripts\update.ps1`). It automatically pulls updates, recompiles the binary, updates your installation folder, and restarts the background service.
+- Or download and run the latest **`ai-terminal-gateway-setup.exe`** installer (which automatically upgrades the background service while keeping your `.env` configuration and API keys intact).
+
 
 ### 4. Put it behind TLS + a reverse proxy
 

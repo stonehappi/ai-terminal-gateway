@@ -8,7 +8,7 @@
 //     with `--output-format json`, and wraps the model's final text in a JSON
 //     envelope that this package unwraps. Auth comes from your local Claude Code
 //     login — no ANTHROPIC_API_KEY needed.
-//   - "agy" — the agy CLI. Takes the prompt as a `--print` argument and emits
+//   - "agy" — the agy CLI. Reads the prompt from stdin via `agy -p -` and emits
 //     the model's raw text directly (no JSON envelope). Auth comes from your
 //     local agy login.
 //   - "codex" — the OpenAI Codex CLI. Runs `codex exec <prompt>` headlessly and
@@ -175,15 +175,18 @@ func (c *Client) runClaude(ctx context.Context, prompt string) (string, error) {
 	return env.Result, nil
 }
 
-// runAgy drives the agy CLI, which takes the prompt as a --print argument and
-// prints the model's raw text (no JSON envelope) to stdout.
+// runAgy drives the agy CLI. It feeds the prompt on stdin with "-p -" rather
+// than passing it as a CLI argument: Hermes and other external callers send
+// long multi-line system prompts containing quotes and newlines, which get
+// mangled or exceed length limits when passed as command-line arguments.
 func (c *Client) runAgy(ctx context.Context, prompt string) (string, error) {
-	args := []string{"--print", prompt}
+	args := []string{"-p", "-"}
 	if c.model != "" {
 		args = append(args, "--model", c.model)
 	}
 
 	cmd := exec.CommandContext(ctx, c.bin, args...)
+	cmd.Stdin = strings.NewReader(prompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
