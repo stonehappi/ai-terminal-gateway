@@ -22,6 +22,11 @@ The generation backend is selectable via `LLM_PROVIDER` (`claude` by default,
 `agy`, or `codex`). Auth for generation comes from that CLI's own local login —
 **no `ANTHROPIC_API_KEY` is used**.
 
+The gateway also exposes an **OpenAI-compatible API** (`/v1/chat/completions` +
+`/v1/models`), so other harnesses — **Hermes Agent**, **OpenClaw**, or any
+OpenAI-SDK client — can plug it in as a custom model provider. See
+[Using the gateway as a provider in other harnesses](#get-v1models-and-post-v1chatcompletions-openai-compatible).
+
 ```
 POST /v1/run                      generation CLI           Docker sandbox
   { "prompt": "..." }   ──▶  gateway ─────▶ generate JSON ──▶  run (no network,   ──▶  { script, stdout,
@@ -328,6 +333,78 @@ curl -s http://localhost:8081/v1/run \
   -H "Content-Type: application/json" \
   -d '{"prompt":"list the first 10 prime numbers","provider":"codex"}' | jq
 ```
+
+### `GET /v1/models` and `POST /v1/chat/completions` (OpenAI-compatible)
+
+The gateway also speaks the **OpenAI Chat Completions protocol**, so any
+harness or SDK that accepts a custom OpenAI-compatible provider — **Hermes
+Agent**, **OpenClaw**, LibreChat, the official `openai` SDKs, plain `curl` —
+can use this gateway as its model backend:
+
+- **Base URL:** `http://localhost:8081/v1`
+- **API key:** any key from `GATEWAY_API_KEYS` (sent as `Authorization: Bearer …`)
+- **Model ids:** the provider names — `claude`, `agy`, `codex` (listed by
+  `GET /v1/models`; a prefixed id like `ai-gateway/claude` also works, and an
+  unknown model falls back to `LLM_PROVIDER`)
+- `stream: true` is supported (the reply arrives as SSE chunks once generation
+  finishes — the backing CLIs don't stream token-by-token)
+
+Unlike `/v1/run`, this surface is a **plain LLM passthrough**: the conversation
+goes straight to the selected CLI and its text reply comes back verbatim — no
+answer/script decision, no sandbox execution. Limitations: no tool/function
+calling (`tool_calls` never appears, so harness features that require it won't
+activate), and `usage` token counts are rough character-based estimates.
+
+```sh
+curl -s http://localhost:8081/v1/chat/completions \
+  -H "Authorization: Bearer dev-key-123" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"claude","messages":[{"role":"user","content":"Say hi"}]}' | jq
+```
+
+**Hermes Agent** (`~/.hermes/config.yaml`) — add the gateway as a provider:
+
+```yaml
+providers:
+  ai-gateway:
+    api: http://localhost:8081/v1
+    api_key: dev-key-123
+    discover_models: false   # or omit to let Hermes query GET /v1/models
+    models:
+      - claude
+      - agy
+      - codex
+```
+
+Then select it per run, e.g. `hermes -z "hello" -m claude`.
+
+**OpenClaw** (`~/.openclaw/openclaw.json`) — add a custom
+`openai-completions` provider, then allowlist the model:
+
+```json
+{
+  "models": {
+    "providers": {
+      "ai-gateway": {
+        "baseUrl": "http://localhost:8081/v1",
+        "apiKey": "dev-key-123",
+        "api": "openai-completions",
+        "models": [
+          { "id": "claude", "name": "Gateway (Claude Code)", "contextWindow": 200000, "maxTokens": 8192 }
+        ]
+      }
+    }
+  }
+}
+```
+
+Remember OpenClaw also requires the model in its agent allowlist
+(`agents.defaults.models["ai-gateway/claude"]`).
+
+> **Note:** chaining harnesses this way means the *outer* harness's requests are
+> answered by the *inner* CLI's account/login on this machine — the third-party
+> terms in [Usage & third-party terms](#usage--third-party-terms) still apply.
+> Don't expose the endpoint to third parties.
 
 ## Generation providers
 

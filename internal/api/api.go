@@ -43,6 +43,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /{$}", s.handleConsole)
 	mux.HandleFunc("GET /healthz", s.handleHealth)
 	mux.Handle("POST /v1/run", s.authMiddleware(http.HandlerFunc(s.handleRun)))
+	// OpenAI-compatible surface so external harnesses (Hermes, OpenClaw, any
+	// OpenAI-SDK client) can use the gateway as a model provider. See openai.go.
+	mux.Handle("POST /v1/chat/completions", s.authMiddleware(http.HandlerFunc(s.handleChatCompletions)))
+	mux.Handle("GET /v1/models", s.authMiddleware(http.HandlerFunc(s.handleModels)))
 	return logMiddleware(s.log, mux)
 }
 
@@ -99,7 +103,7 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate the script from the prompt.
-	genCtx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
+	genCtx, cancel := contextWithGenTimeout(r)
 	defer cancel()
 
 	gen, err := client.Generate(genCtx, req.Prompt, req.Language)
@@ -143,6 +147,11 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 		Explanation: gen.Explanation,
 		Execution:   result,
 	})
+}
+
+// contextWithGenTimeout bounds a generation call; the CLIs can take minutes.
+func contextWithGenTimeout(r *http.Request) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(r.Context(), 5*time.Minute)
 }
 
 // authMiddleware enforces Bearer-token auth against the configured gateway keys.

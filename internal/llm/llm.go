@@ -123,6 +123,14 @@ func (c *Client) Generate(ctx context.Context, prompt, languageHint string) (*Ge
 	return normalize(g)
 }
 
+// Complete sends the prompt to the CLI as-is and returns the model's final
+// text unchanged — no answer/script instructions, no JSON extraction. This is
+// the passthrough used by the OpenAI-compatible /v1/chat/completions endpoint,
+// where the caller (an external harness) expects a plain LLM reply.
+func (c *Client) Complete(ctx context.Context, prompt string) (string, error) {
+	return c.run(ctx, prompt)
+}
+
 // run invokes the provider's CLI in print mode and returns the model's final
 // text (from which a JSON decision is later extracted).
 func (c *Client) run(ctx context.Context, prompt string) (string, error) {

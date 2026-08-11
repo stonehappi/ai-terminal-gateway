@@ -1,5 +1,6 @@
 /ai-gateway-api
 /ai-gateway-api.exe
+*.exe~
 .env
 
 # Runtime log file (GATEWAY_LOG_FILE)
