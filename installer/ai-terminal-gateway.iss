@@ -1,11 +1,11 @@
-; Inno Setup script for the AI Terminal Gateway.
+﻿; Inno Setup script for the AI Terminal Gateway.
 ; Builds a single Setup.exe wizard. Per-user install (no admin required):
 ; installs the prebuilt binary + scripts, lets the user pick a provider, then
 ; runs setup.ps1 (generates .env with a key, auto-detects Docker, registers the
 ; logon auto-start task). Build with: scripts\build-installer.ps1
 
 #define MyAppName "AI Terminal Gateway"
-#define MyAppVersion "0.1.4"
+#define MyAppVersion "0.1.5"
 #define MyAppPublisher "stonehappi"
 #define MyAppURL "https://github.com/stonehappi/ai-terminal-gateway"
 
